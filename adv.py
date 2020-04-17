@@ -30,42 +30,56 @@ player = Player(world.starting_room)
 # traversal_path = ['n', 'n']
 traversal_path = []
 
-# generate a random direction [n, s, e, w]
+# RANDOM DIRECTION GENERATOR [n, s, e, w]
 def random_direction():
     dirs = ['n', 's', 'e', 'w']
     return random.choice(dirs)
 
-# CONSTRUCT A TRAVEL GRAPH
-# bft?
-# starts in room { 0: {'n':'?', 's':'?', 'w':'?', 'e':'?'} }
-# create queue
+# CONSTRUCT A TRAVEL GRAPH - bft
+visited = {} # { 0: {'n':'?', 's':'?', 'w':'?', 'e':'?'} }
+
 q = Queue()
 # enqueue first room id
+print('cur room id:', player.current_room.id)
 q.enqueue(player.current_room.id)
 
 # loop while queue is not empty
+# maybe loop while room is valid?
 while q.size() > 0:
     # dequeue first room
     room = q.dequeue()
-    print('room:', room)
+    print('room id:', room)
     # pick a random unexplored direction from cur room, unexplored = '?'
     direction = random_direction()
     print('direction:', direction)
-    print('room in direction:', player.current_room.get_room_in_direction(direction))
-    # if room in that direction has not been visited aka ?,
+
+    # check if room can be traveled to
     if player.current_room.get_room_in_direction(direction) != None:
-        print('here')
         # travel to that room
         player.travel(direction)
         # log that direction
         traversal_path.append(direction)
 
+        # get possible rooms possible
         unvisited = player.current_room.get_exits()
-        print('unvisited:', unvisited)
+        # print('unvisited:', unvisited) # ['n', 's']
 
-        # enqueue all unvisited rooms
+        # save cur rooms to add to visited
+        cur_room_dict = {}
 
+        # loop through list of rooms
+        for next_room in unvisited:
 
+            # if next_room != '?':
+                # add each room to room dict
+                cur_room_dict[next_room] = '?'
+                print('cur room dict', cur_room_dict)
+            # enqueue each room
+            q.enqueue(next_room)
+
+        # add cur room to visited
+        visited[player.current_room.id] = cur_room_dict
+        print('visited dict:', visited)
 
 
 
