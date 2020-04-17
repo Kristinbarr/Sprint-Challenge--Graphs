@@ -30,56 +30,87 @@ player = Player(world.starting_room)
 # traversal_path = ['n', 'n']
 traversal_path = []
 
-# RANDOM DIRECTION GENERATOR [n, s, e, w]
-def random_direction():
-    dirs = ['n', 's', 'e', 'w']
-    return random.choice(dirs)
-
-# CONSTRUCT A TRAVEL GRAPH - bft
+# TRAVEL GRAPH - bft
 visited = {} # { 0: {'n':'?', 's':'?', 'w':'?', 'e':'?'} }
+# { 0: {'n':'?'} }
+# { 1: {'n':'?', 's':'?'}
+# { 2: {'s':'?'}
+
+# FIND OPPOSITE DIRECTION
+def get_opposite_direction(direction):
+    if direction == 'n':
+        return 's'
+    if direction == 's':
+        return 'n'
+    if direction == 'e':
+        return 'w'
+    if direction == 'w':
+        return 'e'
+
+# ADD UNVISTED ROOM TO VISITED
+def add_to_visited(room_id, exits_list):
+    exits_dict = {}
+    # iterate through exits,
+    for exit in exits_list:
+        # add up exits in a {} with '?'
+        exits_dict[exit] = '?'
+    # add room to visited
+    visited[room_id] = exits_dict
 
 q = Queue()
-# enqueue first room id
-print('cur room id:', player.current_room.id)
-q.enqueue(player.current_room.id)
+# enqueue all cur room exits in tuple (room_id, direction ) (0, 'n')
+exits_list = player.current_room.get_exits()
+
+for exit in exits_list:
+    print('exit:', exit)
+    q.enqueue( (player.current_room.id, exit) )
+# enqueue first room id - [ {0:[n]}, {1:[n,s]}, {2:[s]} ]
+# q.enqueue(player.current_room.id)
 
 # loop while queue is not empty
-# maybe loop while room is valid?
 while q.size() > 0:
-    # dequeue first room
+    # dequeue first room - (0, 'n')
     room = q.dequeue()
-    print('room id:', room)
-    # pick a random unexplored direction from cur room, unexplored = '?'
-    direction = random_direction()
-    print('direction:', direction)
+    room_id = room[0]
+    print('room:', room, 'roomId:', room_id)
+    # save cur room as previous
+    prev_room_id = room_id
 
-    # check if room can be traveled to
-    if player.current_room.get_room_in_direction(direction) != None:
-        # travel to that room
-        player.travel(direction)
-        # log that direction
+    # ADD TO VISITED IF UNVISITED
+    # if room has not been visited,
+    if room_id not in visited:
+        add_to_visited(room_id, exits_list)
+
+        # GET EXITS
+        # variable for exits direction list
+        exits = player.current_room.get_exits()
+        # pick last direction in list
+        direction = exits[-1]
+
+        # ADD TO QUEUE/STACK
+        # add new room to queue so we can travel all it's exits
+        q.enqueue((room_id, direction))
+
+
+        # TRAVEL TO NEW ROOM
+        # if value is a ?, travel to it
+        if visited[room_id][direction] == "?":
+            player.travel(direction)
+        # TODO: if no rooms have ?, it's a dead end or been traveled already, start over?
+
+        # UPDATE TRAVELED DIRECTION FOR PREV ROOM
+        # update last room's opposite direction to be the cur room
+        opp_dir = get_opposite_direction(direction)
+        visited[prev_room_id][opp_dir] = player.current_room.id
+        # update cur room's cur direction to be the next room
+        # next_room_id = player.current_room.get_room_in_direction(direction).id
+        # visited[room_id][direction] = next_room_id
+
+
+        # ADD TO TRAVERSAL PATH
         traversal_path.append(direction)
 
-        # get possible rooms possible
-        unvisited = player.current_room.get_exits()
-        # print('unvisited:', unvisited) # ['n', 's']
 
-        # save cur rooms to add to visited
-        cur_room_dict = {}
-
-        # loop through list of rooms
-        for next_room in unvisited:
-
-            # if next_room != '?':
-                # add each room to room dict
-                cur_room_dict[next_room] = '?'
-                print('cur room dict', cur_room_dict)
-            # enqueue each room
-            q.enqueue(next_room)
-
-        # add cur room to visited
-        visited[player.current_room.id] = cur_room_dict
-        print('visited dict:', visited)
 
 
 
