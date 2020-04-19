@@ -1,7 +1,7 @@
 from room import Room
 from player import Player
 from world import World
-from util import Queue
+from util import Queue, Stack
 
 import random
 from ast import literal_eval
@@ -32,9 +32,9 @@ traversal_path = []
 
 # TRAVEL GRAPH - bft
 visited = {} # { 0: {'n':'?', 's':'?', 'w':'?', 'e':'?'} }
-# { 0: {'n':'?'} }
-# { 1: {'n':'?', 's':'?'}
-# { 2: {'s':'?'}
+# { 0: {'n':1} }
+# { 1: {'n':2, 's':0}
+# { 2: {'s':1} }
 
 # FIND OPPOSITE DIRECTION
 def get_opposite_direction(direction):
@@ -57,60 +57,94 @@ def add_to_visited(room_id, exits_list):
     # add room to visited
     visited[room_id] = exits_dict
 
-q = Queue()
-# enqueue all cur room exits in tuple (room_id, direction ) (0, 'n')
-exits_list = player.current_room.get_exits()
+# CHECK FOR UNVISTED ROOMS
+def check_unvisited(room_id):
+    flag = False
+    print('test:', visited, room_id)
+    if visited[room_id]['n'] == '?':
+        flag = True
+    if visited[room_id]['s'] == '?':
+        flag = True
+    if visited[room_id]['e'] == '?':
+        flag = True
+    if visited[room_id]['w'] == '?':
+        flag = True
+    return flag
 
-for exit in exits_list:
-    print('exit:', exit)
-    q.enqueue( (player.current_room.id, exit) )
-# enqueue first room id - [ {0:[n]}, {1:[n,s]}, {2:[s]} ]
-# q.enqueue(player.current_room.id)
+# SAVE EXITS, cur room id
+exits_list = player.current_room.get_exits() # ['n'] 
+direction = exits_list[-1] # 'n'
+# print('starting room:', player.current_room.id, 'starting exists:', exits_list)
+# INIT STACK or QUEUE
+s = Stack()
+
+# ENQUEUE FIRST ITEM - tuple of direction and previous room - (0, 'n')
+s.push( (None, direction) ) # (0, 'n')
+# enqueue all cur room exits in tuple (room_id, direction ) (0, 'n')
+# for exit in first_exits_list:
+#     q.enqueue( (player.current_room.id, exit) )
 
 # loop while queue is not empty
-while q.size() > 0:
-    # dequeue first room - (0, 'n')
-    room = q.dequeue()
-    room_id = room[0]
-    print('room:', room, 'roomId:', room_id)
-    # save cur room as previous
-    prev_room_id = room_id
+while s.size() > 0:
+    # dequeue first room
+    room_info = s.pop() # (None, 'n') -> (0, 'n')
+    prev_room_id = room_info[0] # None -> 0 
+    curr_room_id = player.current_room.id # 0 -> 1
+    print('dequeued room info:', room_info) # (None, 'n) -> (0, 'n)
+    print('prev_room:', prev_room_id) # None -> 0
+    print('cur_room:', curr_room_id) # 0 -> 1
 
     # ADD TO VISITED IF UNVISITED
     # if room has not been visited,
-    if room_id not in visited:
-        add_to_visited(room_id, exits_list)
+    if curr_room_id not in visited:
+        exits_list = player.current_room.get_exits()
+        add_to_visited(curr_room_id, exits_list)
+        print('visited1:', visited) # { 0: {'n':'?'} } -> {0: {'n': '?'}, 1: {'n': '?', 's': '?'}}
+
+        # UPDATE PREV ROOM'S DIRECTION AND UPDATE CUR ROOM'S OPPOSITE DIRECTION
+        opp_dir = get_opposite_direction(direction)
+        if prev_room_id is not None:
+            visited[prev_room_id][direction] = curr_room_id
+            print('visited after updated:', visited) # 2nd time around: {0: {'n': 1}, 1: {'n': '?', 's': 0}}
+        # set cur room's past room
+        visited[curr_room_id][opp_dir] = prev_room_id
 
         # GET EXITS
-        # variable for exits direction list
-        exits = player.current_room.get_exits()
-        # pick last direction in list
-        direction = exits[-1]
+        exits = player.current_room.get_exits() 
+        print('get exits:', exits) # ['n'] -> ['n', 's']
 
         # ADD TO QUEUE/STACK
-        # add new room to queue so we can travel all it's exits
-        q.enqueue((room_id, direction))
+        # add new room exits to queue to travel to later
+        for direction in exits:
+            print('dir:', direction)
+
+            # TRAVEL TO A ROOM
+            print('curID:', curr_room_id)
+            if visited[curr_room_id][direction] == "?":
+                
+                # ADD FUTURE ROOMS TO STACK
+                s.push((curr_room_id, direction))
+                player.travel(direction)
+                # curr_room_id = player.current_room.id # 0 
+                print('cur_rom id:', curr_room_id)
+
+        # TODO: if room has no ?s - helpfer func
+        if check_unvisited(curr_room_id) == True:
+            print('here')
+            # go backwards, pop off stack
+
+        # BFS to find any unvisited rooms with ?s
+            # destination is a room with ?s
+            # buid a path to traverse after finding destination
+
+        # step back a room and check that room for more rooms
+        # pop from stack to travel
+        print('stack after pushed:', s) # [(0, 'n')]
 
 
-        # TRAVEL TO NEW ROOM
-        # if value is a ?, travel to it
-        if visited[room_id][direction] == "?":
-            player.travel(direction)
-        # TODO: if no rooms have ?, it's a dead end or been traveled already, start over?
-
-        # UPDATE TRAVELED DIRECTION FOR PREV ROOM
-        # update last room's opposite direction to be the cur room
-        opp_dir = get_opposite_direction(direction)
-        visited[prev_room_id][opp_dir] = player.current_room.id
-        # update cur room's cur direction to be the next room
-        # next_room_id = player.current_room.get_room_in_direction(direction).id
-        # visited[room_id][direction] = next_room_id
-
-
-        # ADD TO TRAVERSAL PATH
-        traversal_path.append(direction)
-
-
+    # ADD TO TRAVERSAL PATH
+    traversal_path.append(direction)
+    print('.......')
 
 
 
